@@ -87,7 +87,8 @@ void CSMain(int3 id : SV_DispatchThreadID)
 	if (id.z >= _Depth - 1 - _Border) return;
 
 	float3 pos = float3(id);
-	float3 centre = float3(_Width, 0, _Depth) / 2.0;
+	float3 centre = float3(0, 0, 0) / 6.0;
+	//float3 centre = float3(_Width, 0, _Depth) / 2.0;
 
 	float cube[8];
 	FillCube(id.x, id.y, id.z, cube);

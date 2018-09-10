@@ -4,8 +4,10 @@
 StructuredBuffer<float> _Noise;
 
 RWTexture3D<float3> _Result;
-
+float3 _Position;
 int _Width, _Height;
+
+
 
 [numthreads(8,8,8)]
 void CSMain (uint3 id : SV_DispatchThreadID)
@@ -19,6 +21,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float dz = v -_Noise[id.x + id.y * _Width + (id.z+1) * _Width * _Height];
 	
 
+	//_Result[id] = normalize(float3(dx,dy,dz));
 	_Result[id] = float3(dx,dy,dz);
+	//_Result[id] = (_Position) * -1;
 
 }

@@ -4,14 +4,12 @@ using System.Collections;
 using MarchingCubes;
 using MarchingCubes.Marching;
 #pragma warning disable 162
-
 using ImprovedPerlinNoiseProject;
 
 namespace MarchingCubesGPUProject
 {
     public class MarchingCubesGPU_4DNoise : MonoBehaviour
     {
-
         //The size of the voxel array for each dimension
         public int N = 40;
 
@@ -35,7 +33,7 @@ namespace MarchingCubesGPUProject
         public ComputeShader m_clearBuffer;
 
         ComputeBuffer voxelBuffer, m_meshBuffer;
-        
+
         RenderTexture m_normalsBuffer;
 
         ComputeBuffer m_cubeEdgeFlags, m_triangleConnectionTable;
@@ -43,14 +41,14 @@ namespace MarchingCubesGPUProject
 //        private VoxelData[] voxels;
         private VoxelData[] voxels;
         private float[] voxelValues;
-        
+
         public Vector3 start = new Vector3(0.2f, 0.2f, 0.2f);
         public Vector3 end = new Vector3(0.8f, 0.8f, 0.8f);
-        
+
         public bool InitCube;
 
         public Tool Tool;
-        
+
         void Start()
         {
             size = N * N * N * 3 * 5;
@@ -72,14 +70,26 @@ namespace MarchingCubesGPUProject
                             new VoxelData(new Vector3(fx * (N - 1.0f), fy * (N - 1.0f), fz * (N - 1.0f)), 0,
                                 idx);
                         voxelValues[idx] = 0;
-                        
+
                         if (InitCube)
                         {
-                            if (fx > start.x && fx < end.x)
+//                            if (fx > start.x && fx < end.x)
+//                            {
+//                                if (fy > start.y && fy < end.y)
+//                                {
+//                                    if (fz > start.z && fz < end.z)
+//                                    {
+//                                        voxels[idx].Value = 1;
+//                                        voxelValues[idx] = 1;
+//                                    }
+//                                }
+//                            } 
+                            
+                            if (fx > 0 + (float)1 / (N - 1) && fx < 1 - (float)1 / (N - 1))
                             {
-                                if (fy > start.y && fy < end.y)
+                                if (fy > 0 + (float)1 / (N - 1) && fy < 1 - (float)1 / (N - 1))
                                 {
-                                    if (fz > start.z && fz < end.z)
+                                    if (fz > 0 + (float)1 / (N - 1) && fz < 1 - (float)1 / (N - 1))
                                     {
                                         voxels[idx].Value = 1;
                                         voxelValues[idx] = 1;
@@ -90,7 +100,7 @@ namespace MarchingCubesGPUProject
                     }
                 }
             }
-            
+
             //Allows this camera to draw mesh procedurally.
             PostRenderEvent.AddEvent(Camera.main, DrawMesh);
 
@@ -117,11 +127,15 @@ namespace MarchingCubesGPUProject
             m_cubeEdgeFlags.SetData(MarchingCubesTables.CubeEdgeFlags);
             m_triangleConnectionTable = new ComputeBuffer(256 * 16, sizeof(int));
             m_triangleConnectionTable.SetData(MarchingCubesTables.TriangleConnectionTable);
+            
+            Render();
         }
 
+        public Transform ct;
 
         void Update()
         {
+//            m_normals.SetVector("_Position", ct.forward);
             
             Tool.Bounds.center = Tool.transform.position;
 
@@ -137,10 +151,42 @@ namespace MarchingCubesGPUProject
                     DisableVoxel(voxelData);
                 }
             }
-            
+        }
+
+        private void OnDrawGizmos()
+        {
+            for (int index = 0; index < voxels.Length; index += 4)
+            {
+                Gizmos.DrawSphere(voxels[index].Position, 0.1f);
+            }
+        }
+
+        /// <summary>
+        /// Draws the mesh when cameras OnPostRender called.
+        /// </summary>
+        /// <param name="camera"></param>
+        void DrawMesh(Camera camera)
+        {
+            //Since mesh is in a buffer need to use DrawProcedual called from OnPostRender or OnRenderObject
+            m_drawBuffer.SetBuffer("_Buffer", m_meshBuffer);
+            m_drawBuffer.SetPass(0);
+
+            Graphics.DrawProcedural(MeshTopology.Triangles, size);
+        }
+
+        public void DisableVoxel(VoxelData voxelData)
+        {
+            voxels[voxelData.Index].Value = 0;
+            voxelValues[voxelData.Index] = 0;
+
+            Render();
+        }
+
+        private void Render()
+        {
             voxelBuffer.SetData(voxelValues);
-            voxelBuffer.SetCounterValue((uint)voxelValues.Length);
-            
+            voxelBuffer.SetCounterValue((uint) voxelValues.Length);
+
             //Clear the buffer from last frame.
             m_clearBuffer.SetInt("_Width", N);
             m_clearBuffer.SetInt("_Height", N);
@@ -186,25 +232,6 @@ namespace MarchingCubesGPUProject
             m_marchingCubes.Dispatch(0, N / 8, N / 8, N / 8);
         }
 
-        /// <summary>
-        /// Draws the mesh when cameras OnPostRender called.
-        /// </summary>
-        /// <param name="camera"></param>
-        void DrawMesh(Camera camera)
-        {
-            //Since mesh is in a buffer need to use DrawProcedual called from OnPostRender or OnRenderObject
-            m_drawBuffer.SetBuffer("_Buffer", m_meshBuffer);
-            m_drawBuffer.SetPass(0);
-
-            Graphics.DrawProcedural(MeshTopology.Triangles, size);
-        }
-
-        public void DisableVoxel(VoxelData voxelData)
-        {
-            voxels[voxelData.Index].Value = 0;
-            voxelValues[voxelData.Index] = 0;
-        }
-        
         void OnDestroy()
         {
             //MUST release buffers.
@@ -216,36 +243,5 @@ namespace MarchingCubesGPUProject
 
             PostRenderEvent.RemoveEvent(Camera.main, DrawMesh);
         }
-
     }
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
