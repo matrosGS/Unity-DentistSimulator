@@ -1,8 +1,11 @@
 ﻿using UnityEngine;
 using UnityEngine.Rendering;
 using System.Collections;
-using MarchingCubes;
+using System.Collections.Generic;
+using System.Linq;
 using MarchingCubes.Marching;
+using UnityEditor;
+using Tool = MarchingCubes.Tool;
 #pragma warning disable 162
 using ImprovedPerlinNoiseProject;
 
@@ -42,19 +45,41 @@ namespace MarchingCubesGPUProject
         private VoxelData[] voxels;
         private float[] voxelValues;
 
-        public Vector3 start = new Vector3(0.2f, 0.2f, 0.2f);
-        public Vector3 end = new Vector3(0.8f, 0.8f, 0.8f);
-
         public bool InitCube;
 
         public Tool Tool;
 
         void Start()
         {
+
             size = N * N * N * 3 * 5;
             voxels = new VoxelData[N * N * N];
             voxelValues = new float[N * N * N];
-
+            
+            MeshReader meshReader = FindObjectOfType<MeshReader>();
+            Mesh mesh = null;
+            var meshVertices = new List<Vector3>();
+            var voxelPositions = new Vector3[voxels.Length];
+            
+            if (meshReader != null)
+            {
+                mesh = meshReader.mesh;
+                meshVertices = new List<Vector3>(mesh.vertices.Length);
+                voxelPositions = new Vector3[voxels.Length];
+            
+                foreach (Vector3 meshVertex in mesh.vertices)
+                {
+//                Debug.Log(meshVertex * 0.5f);
+                    var newVector = meshVertex + Vector3.one;
+//                var newVector = meshVertex + Vector3.one;
+//                newVector *= 0.5f;
+//                newVector = new Vector3(Mathf.Clamp(newVector.x, (float)1 / (N - 1), 1 - (float)1 / (N - 1)),
+//                    Mathf.Clamp(newVector.y, (float)1 / (N - 1), 1 - (float)1 / (N - 1)),
+//                    Mathf.Clamp(newVector.z, (float)1 / (N - 1), 1 - (float)1 / (N - 1)));
+                    meshVertices.Add(newVector);
+                }
+            }
+            
             for (int x = 0; x < N; x++)
             {
                 for (int y = 0; y < N; y++)
@@ -70,7 +95,17 @@ namespace MarchingCubesGPUProject
                             new VoxelData(new Vector3(fx * (N - 1.0f), fy * (N - 1.0f), fz * (N - 1.0f)), 0,
                                 idx);
                         voxelValues[idx] = 0;
-
+                        if (meshReader != null)
+                        {
+                            voxelPositions[idx] = new Vector3(fx, fy, fz);
+                            if (meshVertices.Any(vertex => (vertex * 0.5f).AlmostEquals(voxelPositions[idx])))
+                            {
+                                voxels[idx].Value = 1;
+                                voxelValues[idx] = 1;
+//                            Debug.Log(idx + " " + voxels[idx].Position);
+                            }
+                        }
+                       
                         if (InitCube)
                         {
 //                            if (fx > start.x && fx < end.x)
@@ -131,8 +166,6 @@ namespace MarchingCubesGPUProject
             Render();
         }
 
-        public Transform ct;
-
         void Update()
         {
 //            m_normals.SetVector("_Position", ct.forward);
@@ -152,12 +185,18 @@ namespace MarchingCubesGPUProject
                 }
             }
         }
-
+        
         private void OnDrawGizmos()
         {
+            if (voxels == null)
+            {
+                return;
+            }
+
             for (int index = 0; index < voxels.Length; index += 4)
             {
                 Gizmos.DrawSphere(voxels[index].Position, 0.1f);
+//                Handles.Label(voxels[index].Position, "Index " + index);
             }
         }
 
