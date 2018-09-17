@@ -22,13 +22,7 @@ namespace MarchingCubesGPUProject
         //marching cube can produce, 5 triangles for each voxel.
         private int size;
 
-        public int m_seed;
-
-        public float m_speed = 2.0f;
-
         public Material m_drawBuffer;
-
-//        public ComputeShader m_perlinNoise;
 
         public ComputeShader m_marchingCubes;
 
@@ -42,7 +36,6 @@ namespace MarchingCubesGPUProject
 
         ComputeBuffer m_cubeEdgeFlags, m_triangleConnectionTable;
 
-//        private VoxelData[] voxels;
         private VoxelData[] voxels;
         private float[] voxelValues;
 
@@ -52,38 +45,31 @@ namespace MarchingCubesGPUProject
         public GameObject VoxelPrefab;
 
         private bool isDirty;
-        
+
         private void Start()
         {
-
             size = N * N * N * 3 * 5;
             voxels = new VoxelData[N * N * N];
             voxelValues = new float[N * N * N];
-            
+
             MeshReader meshReader = FindObjectOfType<MeshReader>();
             Mesh mesh = null;
             var meshVertices = new List<Vector3>();
             var voxelPositions = new Vector3[voxels.Length];
-            
+
             if (meshReader != null)
             {
                 mesh = meshReader.mesh;
                 meshVertices = new List<Vector3>(mesh.vertices.Length);
                 voxelPositions = new Vector3[voxels.Length];
-            
+
                 foreach (Vector3 meshVertex in mesh.vertices)
                 {
-//                Debug.Log(meshVertex * 0.5f);
                     var newVector = meshVertex;
-//                var newVector = meshVertex + Vector3.one;
-//                newVector *= 0.5f;
-//                newVector = new Vector3(Mathf.Clamp(newVector.x, (float)1 / (N - 1), 1 - (float)1 / (N - 1)),
-//                    Mathf.Clamp(newVector.y, (float)1 / (N - 1), 1 - (float)1 / (N - 1)),
-//                    Mathf.Clamp(newVector.z, (float)1 / (N - 1), 1 - (float)1 / (N - 1)));
                     meshVertices.Add(newVector);
                 }
             }
-            
+
             for (int x = 0; x < N; x++)
             {
                 for (int y = 0; y < N; y++)
@@ -102,53 +88,41 @@ namespace MarchingCubesGPUProject
                         if (meshReader != null)
                         {
                             voxelPositions[idx] = new Vector3(fx, fy, fz);
-                            if (meshVertices.Any(vertex => (vertex * 0.3f + Vector3.one * 0.1f).AlmostEquals(voxelPositions[idx])))
+                            if (meshVertices.Any(vertex =>
+                                (vertex * 0.3f + Vector3.one * 0.1f).AlmostEquals(voxelPositions[idx])))
                             {
                                 voxels[idx].Value = 1;
                                 voxelValues[idx] = 1;
-//                            Debug.Log(idx + " " + voxels[idx].Position);
                             }
                         }
-                       
+
 //                        ShowVoxel(voxels[idx].Position);
-                        
+
                         if (InitCube)
                         {
-//                            if (fx > start.x && fx < end.x)
-//                            {
-//                                if (fy > start.y && fy < end.y)
-//                                {
-//                                    if (fz > start.z && fz < end.z)
-//                                    {
-//                                        voxels[idx].Value = 1;
-//                                        voxelValues[idx] = 1;
-//                                    }
-//                                }
-//                            } 
-                            
-//                            if (fx > 0 + (float)1 / (N - 1) && fx < 1 - (float)1 / (N - 1))
-//                            {
-//                                if (fy > 0 + (float)1 / (N - 1) && fy < 1 - (float)1 / (N - 1))
-//                                {
-//                                    if (fz > 0 + (float)1 / (N - 1) && fz < 1 - (float)1 / (N - 1))
-//                                    {
-//                                        voxels[idx].Value = 1;
-//                                        voxelValues[idx] = 1;
-//                                    }
-//                                }
-//                            }
-                            
-                            if (fx > 0.1 && fx < 0.9)
+                            if (fx > 0 + (float) 1 / (N - 1) && fx < 1 - (float) 1 / (N - 1))
                             {
-                                if (fy > 0.1 && fy < 0.9)
+                                if (fy > 0 + (float) 1 / (N - 1) && fy < 1 - (float) 1 / (N - 1))
                                 {
-                                    if (fz > 0.1 && fz < 0.9)
+                                    if (fz > 0 + (float) 1 / (N - 1) && fz < 1 - (float) 1 / (N - 1))
                                     {
                                         voxels[idx].Value = 1;
                                         voxelValues[idx] = 1;
                                     }
                                 }
                             }
+
+//                            if (fx > 0.1 && fx < 0.9)
+//                            {
+//                                if (fy > 0.1 && fy < 0.9)
+//                                {
+//                                    if (fz > 0.1 && fz < 0.9)
+//                                    {
+//                                        voxels[idx].Value = 1;
+//                                        voxelValues[idx] = 1;
+//                                    }
+//                                }
+//                            }
                         }
                     }
                 }
@@ -180,14 +154,12 @@ namespace MarchingCubesGPUProject
             m_cubeEdgeFlags.SetData(MarchingCubesTables.CubeEdgeFlags);
             m_triangleConnectionTable = new ComputeBuffer(256 * 16, sizeof(int));
             m_triangleConnectionTable.SetData(MarchingCubesTables.TriangleConnectionTable);
-            
+
             Render();
         }
 
         void Update()
         {
-//            m_normals.SetVector("_Position", ct.forward);
-            
             Tool.Bounds.center = Tool.transform.position;
 
             foreach (VoxelData voxelData in voxels)
@@ -203,7 +175,7 @@ namespace MarchingCubesGPUProject
                 }
             }
         }
-        
+
         private void OnDrawGizmos()
         {
             if (voxels == null)
@@ -213,7 +185,7 @@ namespace MarchingCubesGPUProject
 
             for (int index = 0; index < voxels.Length; index += 1)
             {
-              //  Gizmos.DrawSphere(voxels[index].Position, 0.1f);
+//                Gizmos.DrawSphere(voxels[index].Position, 0.1f);
 //                Handles.Label(voxels[index].Position, "Index " + index);
             }
         }
@@ -247,7 +219,6 @@ namespace MarchingCubesGPUProject
             }
         }
 
-        
         public void ShowVoxel(Vector3 position)
         {
             Instantiate(VoxelPrefab, position, Quaternion.identity, transform);
@@ -265,20 +236,6 @@ namespace MarchingCubesGPUProject
             m_clearBuffer.SetBuffer(0, "_Buffer", m_meshBuffer);
 
             m_clearBuffer.Dispatch(0, N / 8, N / 8, N / 8);
-
-//            //Make the voxels.
-//            m_perlinNoise.SetInt("_Width", N);
-//            m_perlinNoise.SetInt("_Height", N);
-//            m_perlinNoise.SetFloat("_Frequency", 0.02f);
-//            m_perlinNoise.SetFloat("_Lacunarity", 2.0f);
-//            m_perlinNoise.SetFloat("_Gain", 0.5f);
-//            m_perlinNoise.SetFloat("_Time", Time.realtimeSinceStartup * m_speed);
-//            m_perlinNoise.SetTexture(0, "_PermTable1D", perlin.PermutationTable1D);
-//            m_perlinNoise.SetTexture(0, "_PermTable2D", perlin.PermutationTable2D);
-//            m_perlinNoise.SetTexture(0, "_Gradient4D", perlin.Gradient4D);
-//            m_perlinNoise.SetBuffer(0, "_Result", voxelBuffer);
-//
-//            m_perlinNoise.Dispatch(0, N / 8, N / 8, N / 8);
 
             //Make the voxel normals.
             m_normals.SetInt("_Width", N);
