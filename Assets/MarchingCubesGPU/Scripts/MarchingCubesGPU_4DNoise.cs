@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MarchingCubes.Marching;
 using UnityEditor;
+using UnityEngine.Serialization;
 using Tool = MarchingCubes.Tool;
 #pragma warning disable 162
 using ImprovedPerlinNoiseProject;
@@ -48,8 +49,11 @@ namespace MarchingCubesGPUProject
         public bool InitCube;
 
         public Tool Tool;
+        public GameObject VoxelPrefab;
 
-        void Start()
+        private bool isDirty;
+        
+        private void Start()
         {
 
             size = N * N * N * 3 * 5;
@@ -70,7 +74,7 @@ namespace MarchingCubesGPUProject
                 foreach (Vector3 meshVertex in mesh.vertices)
                 {
 //                Debug.Log(meshVertex * 0.5f);
-                    var newVector = meshVertex + Vector3.one;
+                    var newVector = meshVertex;
 //                var newVector = meshVertex + Vector3.one;
 //                newVector *= 0.5f;
 //                newVector = new Vector3(Mathf.Clamp(newVector.x, (float)1 / (N - 1), 1 - (float)1 / (N - 1)),
@@ -98,7 +102,7 @@ namespace MarchingCubesGPUProject
                         if (meshReader != null)
                         {
                             voxelPositions[idx] = new Vector3(fx, fy, fz);
-                            if (meshVertices.Any(vertex => (vertex * 0.5f).AlmostEquals(voxelPositions[idx])))
+                            if (meshVertices.Any(vertex => (vertex * 0.3f + Vector3.one * 0.1f).AlmostEquals(voxelPositions[idx])))
                             {
                                 voxels[idx].Value = 1;
                                 voxelValues[idx] = 1;
@@ -106,6 +110,8 @@ namespace MarchingCubesGPUProject
                             }
                         }
                        
+//                        ShowVoxel(voxels[idx].Position);
+                        
                         if (InitCube)
                         {
 //                            if (fx > start.x && fx < end.x)
@@ -120,11 +126,23 @@ namespace MarchingCubesGPUProject
 //                                }
 //                            } 
                             
-                            if (fx > 0 + (float)1 / (N - 1) && fx < 1 - (float)1 / (N - 1))
+//                            if (fx > 0 + (float)1 / (N - 1) && fx < 1 - (float)1 / (N - 1))
+//                            {
+//                                if (fy > 0 + (float)1 / (N - 1) && fy < 1 - (float)1 / (N - 1))
+//                                {
+//                                    if (fz > 0 + (float)1 / (N - 1) && fz < 1 - (float)1 / (N - 1))
+//                                    {
+//                                        voxels[idx].Value = 1;
+//                                        voxelValues[idx] = 1;
+//                                    }
+//                                }
+//                            }
+                            
+                            if (fx > 0.1 && fx < 0.9)
                             {
-                                if (fy > 0 + (float)1 / (N - 1) && fy < 1 - (float)1 / (N - 1))
+                                if (fy > 0.1 && fy < 0.9)
                                 {
-                                    if (fz > 0 + (float)1 / (N - 1) && fz < 1 - (float)1 / (N - 1))
+                                    if (fz > 0.1 && fz < 0.9)
                                     {
                                         voxels[idx].Value = 1;
                                         voxelValues[idx] = 1;
@@ -193,9 +211,9 @@ namespace MarchingCubesGPUProject
                 return;
             }
 
-            for (int index = 0; index < voxels.Length; index += 4)
+            for (int index = 0; index < voxels.Length; index += 1)
             {
-                Gizmos.DrawSphere(voxels[index].Position, 0.1f);
+              //  Gizmos.DrawSphere(voxels[index].Position, 0.1f);
 //                Handles.Label(voxels[index].Position, "Index " + index);
             }
         }
@@ -217,8 +235,22 @@ namespace MarchingCubesGPUProject
         {
             voxels[voxelData.Index].Value = 0;
             voxelValues[voxelData.Index] = 0;
+            isDirty = true;
+        }
 
-            Render();
+        private void LateUpdate()
+        {
+            if (isDirty)
+            {
+                isDirty = false;
+                Render();
+            }
+        }
+
+        
+        public void ShowVoxel(Vector3 position)
+        {
+            Instantiate(VoxelPrefab, position, Quaternion.identity, transform);
         }
 
         private void Render()
