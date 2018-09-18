@@ -1,0 +1,46 @@
+
+#pragma kernel CSMain
+
+#define _BoundsX 0.1
+#define _BoundsY 0.1
+#define _BoundsZ 0.1
+#define _ToolBoundsX 20
+#define _ToolBoundsY 20
+#define _ToolBoundsZ 20
+
+int _Width, _Height, _Length;
+
+float3 _ToolPosition;
+
+StructuredBuffer<float> _Voxels;
+RWStructuredBuffer<float> _CollidedVoxels;
+
+RWTexture2D<float4> _Debug;
+
+bool Intersects(float3 voxelPosition)
+{
+    float3 sub = _ToolPosition - voxelPosition;
+    sub *= sub;
+    return _ToolBoundsZ * _ToolBoundsZ < sub.x + sub.y + sub.z; 
+    //return  this.min.x <= bounds.max.x &&  this.max.x >=  bounds.min.x && ( this.min.y <=  bounds.max.y &&  this.max.y >=  bounds.min.y) &&  this.min.z <=  bounds.max.z &&  this.max.z >=  bounds.min.z;
+}
+
+[numthreads(8,8,8)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    float fx = id.x / (_Width - 1.0f);
+    float fy = id.y / (_Width - 1.0f);
+    float fz = id.z / (_Width - 1.0f);
+    int idx = id.x + id.y * _Width + id.z * _Width * _Width;
+    float3 voxelPosition = float3(fx * (_Width - 1.0f), fy * (_Width - 1.0f), fz * (_Width - 1.0f));
+    
+//    _Debug[id] = 0;
+    
+    if(Intersects(voxelPosition)){
+	    _CollidedVoxels[idx] = 0;    
+	    _Debug[id.xy] = float4(1, 0, 0, 1);
+    }
+    else{
+        _CollidedVoxels[idx] = _Voxels[idx];
+    }
+}

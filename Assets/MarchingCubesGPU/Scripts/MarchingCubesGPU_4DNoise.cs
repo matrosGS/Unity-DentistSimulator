@@ -30,6 +30,8 @@ namespace MarchingCubesGPUProject
 
         public ComputeShader ClearBuffer;
 
+        public ComputeShader Collisions;
+
         private ComputeBuffer voxelBuffer;
         private ComputeBuffer MeshBuffer;
 
@@ -138,7 +140,7 @@ namespace MarchingCubesGPUProject
 
             //Holds the voxel values, generated from perlin noise.
             voxelBuffer = new ComputeBuffer(N * N * N, sizeof(float));
-
+        
             //Holds the normals of the voxels.
             normalsBuffer = new RenderTexture(N, N, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
             normalsBuffer.dimension = TextureDimension.Tex3D;
@@ -161,20 +163,20 @@ namespace MarchingCubesGPUProject
 
         void Update()
         {
-            Tool.Bounds.center = Tool.transform.position;
-
-            foreach (VoxelData voxelData in voxels)
-            {
-                if (voxelData.Value == 0)
-                {
-                    continue;
-                }
-
-                if (Tool.Bounds.Intersects(voxelData.Bounds))
-                {
-                    DisableVoxel(voxelData);
-                }
-            }
+//            Tool.Bounds.center = Tool.transform.position;
+//
+//            foreach (VoxelData voxelData in voxels)
+//            {
+//                if (voxelData.Value == 0)
+//                {
+//                    continue;
+//                }
+//
+//                if (Tool.Bounds.Intersects(voxelData.Bounds))
+//                {
+//                    DisableVoxel(voxelData);
+//                }
+//            }
         }
 
         private void OnDrawGizmos()
@@ -246,6 +248,15 @@ namespace MarchingCubesGPUProject
 
             Normals.Dispatch(0, N / 8, N / 8, N / 8);
 
+            Collisions.SetVector("_ToolPosition", Tool.transform.position);
+            Collisions.SetBuffer(0, "_Voxels", voxelBuffer);
+            Collisions.SetBuffer(0, "_CollidedVoxels", voxelBuffer);
+
+            Collisions.Dispatch(0, N / 8, N / 8, N / 8);
+
+            var test = new float[4000];
+            voxelBuffer.GetData(test);
+            
             //Make the mesh verts
             MarchingCubes.SetInt("_Width", N);
             MarchingCubes.SetInt("_Height", N);
